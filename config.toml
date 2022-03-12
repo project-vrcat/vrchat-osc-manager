@@ -1,0 +1,3 @@
+[websocket]
+hostname = "localhost"
+port = 8787
