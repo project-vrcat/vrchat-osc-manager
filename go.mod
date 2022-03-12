@@ -6,7 +6,6 @@ require (
 	github.com/BurntSushi/toml v1.0.0
 	github.com/gobwas/ws v1.1.0
 	github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5
-	github.com/joho/godotenv v1.4.0
 )
 
 require (
