@@ -4,3 +4,4 @@ port = 8787
 
 [plugins.pulsoid-plugin]
 enabled = false
+id = "635e7cd8-0def-4d91-a108-c198f122f663"
