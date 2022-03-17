@@ -11,6 +11,7 @@ import (
 type (
 	Plugin struct {
 		Name        string      `json:"name" toml:"name"`
+		Author      string      `json:"author" toml:"author"`
 		Version     string      `json:"version" toml:"version"`
 		Description string      `json:"description" toml:"description"`
 		HomePage    string      `json:"homepage" toml:"homepage"`
@@ -19,6 +20,7 @@ type (
 		Inputs      []string    `json:"inputs" toml:"inputs"`
 		Entrypoint  Entrypoint  `json:"entrypoint" toml:"entrypoint"`
 		Install     *Entrypoint `json:"install" toml:"install"`
+		Enabled     bool        `json:"enabled" toml:"enabled"`
 		dir         string      // plugin directory
 	}
 	Entrypoint struct {

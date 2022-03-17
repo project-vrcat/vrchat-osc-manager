@@ -1,3 +1,6 @@
 [websocket]
 hostname = "localhost"
 port = 8787
+
+[plugins.pulsoid-plugin]
+enabled = false

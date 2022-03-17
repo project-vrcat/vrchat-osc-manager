@@ -29,6 +29,7 @@ func (p *Plugin) load() error {
 			return err
 		}
 	}
+	p.Enabled = false
 	p.Entrypoint.dir = p.dir
 	p.Entrypoint.name = p.Name
 	if p.Install != nil {
