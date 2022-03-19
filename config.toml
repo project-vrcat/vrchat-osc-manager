@@ -2,6 +2,10 @@
 hostname = "localhost"
 port = 8787
 
+[osc]
+server_addr = "localhost:9001"
+client_port = 9000
+
 [plugins.pulsoid-plugin]
 enabled = false
 id = "635e7cd8-0def-4d91-a108-c198f122f663"

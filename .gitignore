@@ -2,3 +2,5 @@
 .vscode
 *.exe
 **/plugins/
+
+**/config.development.toml

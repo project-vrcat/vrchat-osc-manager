@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/BurntSushi/toml"
+	"vrchat-osc-manager/internal/httputil2"
 )
 
 type (
@@ -9,6 +10,10 @@ type (
 		WebSocket struct {
 			Hostname string `toml:"hostname"`
 			Port     int    `toml:"port"`
+		}
+		OSC struct {
+			ServerAddr string `toml:"server_addr"`
+			ClientPort int    `toml:"client_port"`
 		}
 		Plugins map[string]Plugin `toml:"plugins"`
 	}
@@ -21,6 +26,9 @@ func LoadConfig(path string) (*Config, error) {
 	_, err := toml.DecodeFile(path, &C)
 	if err != nil {
 		return nil, err
+	}
+	if C.WebSocket.Port == -1 {
+		C.WebSocket.Port = httputil2.PickPort()
 	}
 	return &C, nil
 }
