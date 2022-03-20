@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hypebeast/go-osc/osc"
@@ -34,10 +33,7 @@ func (receiver *OSC) Listen() error {
 			log.Println("AvatarChange:", msg.Arguments[0])
 		}
 	})
-	receiver.server = &osc.Server{
-		Addr:       fmt.Sprintf("%s", receiver.ServerAddr),
-		Dispatcher: d,
-	}
+	receiver.server = &osc.Server{Addr: receiver.ServerAddr, Dispatcher: d}
 	log.Printf("[OSCServer] Listening on %s", receiver.ServerAddr)
 	return receiver.server.ListenAndServe()
 }
