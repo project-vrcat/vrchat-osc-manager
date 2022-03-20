@@ -3,50 +3,66 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/hypebeast/go-osc/osc"
 	"log"
+	"net"
 	"net/http"
 	"reflect"
 	"vrchat-osc-manager/internal/config"
+
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/hypebeast/go-osc/osc"
 )
 
-type wsMessage struct {
-	Method string      `json:"method"`
-	Addr   string      `json:"addr"`
-	Value  interface{} `json:"value"`
+type (
+	WSServer struct {
+		hostname string
+		port     int
+		osc      *OSC
+	}
+
+	wsMessage struct {
+		Method  string                 `json:"method"`
+		Plugin  string                 `json:"plugin"`
+		Addr    string                 `json:"addr,omitempty"`
+		Value   interface{}            `json:"value,omitempty"`
+		Options map[string]interface{} `json:"options,omitempty"`
+	}
+)
+
+func NewWSServer(hostname string, port int, osc *OSC) *WSServer {
+	return &WSServer{
+		hostname: hostname,
+		port:     port,
+		osc:      osc,
+	}
 }
 
-func wsServer() {
-	_ = http.ListenAndServe(
-		fmt.Sprintf("%s:%d", config.C.WebSocket.Hostname, config.C.WebSocket.Port),
-		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			conn, _, _, err := ws.UpgradeHTTP(r, w)
+func (receiver *WSServer) handle(w http.ResponseWriter, r *http.Request) {
+	conn, _, _, err := ws.UpgradeHTTP(r, w)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	go func() {
+		defer conn.Close()
+
+		for {
+			msg, op, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				log.Println(err)
 				return
 			}
-			go func() {
-				defer conn.Close()
-
-				for {
-					msg, _, err := wsutil.ReadClientData(conn)
-					if err != nil {
-						log.Println(err)
-						return
-					}
-					//log.Println("[WebSocket Message]", string(msg))
-					var value wsMessage
-					if json.Unmarshal(msg, &value) == nil {
-						messageHandler(value)
-					}
-				}
-			}()
-		}))
+			//log.Println("[WebSocket Message]", string(msg))
+			var value wsMessage
+			if json.Unmarshal(msg, &value) == nil {
+				receiver.messageHandler(value, op, conn)
+			}
+		}
+	}()
 }
 
-func messageHandler(msg wsMessage) {
+func (receiver *WSServer) messageHandler(msg wsMessage, op ws.OpCode, conn net.Conn) {
 	switch msg.Method {
 	case "send":
 		m := osc.NewMessage(msg.Addr)
@@ -63,8 +79,25 @@ func messageHandler(msg wsMessage) {
 			log.Println("[WebSocket Message]", "Unknown type", reflect.TypeOf(v))
 			return
 		}
-		_ = oscClient.Send(m)
+		_ = receiver.osc.Send(m)
+
+	case "get_options":
+		if p, ok := config.C.Plugins[msg.Plugin]; ok {
+			if data, err := json.Marshal(wsMessage{
+				Method:  "get_options",
+				Plugin:  msg.Plugin,
+				Options: p.Options(),
+			}); err == nil {
+				_ = wsutil.WriteServerMessage(conn, op, data)
+			}
+		}
+
 	default:
 		log.Println("[WebSocket Message]", "Unknown method", msg.Method)
 	}
+}
+
+func (receiver *WSServer) Listen() error {
+	log.Printf("[WebSocket] Listening on %s:%d\n", receiver.hostname, receiver.port)
+	return http.ListenAndServe(fmt.Sprintf("%s:%d", receiver.hostname, receiver.port), http.HandlerFunc(receiver.handle))
 }

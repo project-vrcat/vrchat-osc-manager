@@ -6,7 +6,7 @@ import (
 )
 
 func TestPlugin_Init(t *testing.T) {
-	p, err := NewPlugin("plugins/pulsoid-bridge")
+	p, err := NewPlugin("plugins/pulsoid-bridge", "localhost:8787")
 	if err != nil {
 		t.Error(err)
 		return
@@ -17,7 +17,7 @@ func TestPlugin_Init(t *testing.T) {
 }
 
 func TestPlugin_Start(t *testing.T) {
-	p, err := NewPlugin("plugins/pulsoid-bridge")
+	p, err := NewPlugin("plugins/pulsoid-bridge", "localhost:8787")
 	if err != nil {
 		t.Error(err)
 		return

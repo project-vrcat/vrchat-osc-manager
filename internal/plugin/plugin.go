@@ -3,15 +3,16 @@ package plugin
 import (
 	"encoding/json"
 	"errors"
-	"github.com/BurntSushi/toml"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/BurntSushi/toml"
 )
 
-func NewPlugin(dir string) (*Plugin, error) {
-	p := &Plugin{dir: dir}
+func NewPlugin(dir, wsAddr string) (*Plugin, error) {
+	p := &Plugin{Dir: dir, wsAddr: wsAddr}
 	if err := p.load(); err != nil {
 		return nil, err
 	}
@@ -19,51 +20,45 @@ func NewPlugin(dir string) (*Plugin, error) {
 }
 
 func (p *Plugin) load() error {
-	_, err := toml.DecodeFile(filepath.Join(p.dir, "manifest.toml"), p)
+	_, err := toml.DecodeFile(filepath.Join(p.Dir, "manifest.toml"), p)
 	if err != nil {
-		f, err := ioutil.ReadFile(filepath.Join(p.dir, "manifest.json"))
+		f, err := ioutil.ReadFile(filepath.Join(p.Dir, "manifest.json"))
 		if err != nil {
-			return errors.New("can not open manifest file: " + p.dir)
+			return errors.New("can not open manifest file: " + p.Dir)
 		}
 		if err = json.Unmarshal(f, p); err != nil {
 			return err
 		}
 	}
 	p.Enabled = false
-	p.Entrypoint.dir = p.dir
-	p.Entrypoint.name = p.Name
-	if p.Install != nil {
-		p.Install.dir = p.dir
-		p.Install.name = p.Name
-	}
 	return nil
 }
 
 func (p *Plugin) Init() (err error) {
-	if err = p.Entrypoint.checkExecutable(); err != nil {
+	if err = p.Entrypoint.checkExecutable(p.Dir); err != nil {
 		return err
 	}
 	if p.Install != nil {
 		// check if the plugin is already installed
-		if _, err = os.Stat(filepath.Join(p.Install.dir, ".installed")); err != nil {
-			if err = p.Install.checkExecutable(); err != nil {
+		if _, err = os.Stat(filepath.Join(p.Dir, ".installed")); err != nil {
+			if err = p.Install.checkExecutable(p.Dir); err != nil {
 				return err
 			}
-			if err = p.Install.Start(); err != nil {
+			if err = p.Install.Start(p.Dir, p.Name, p.wsAddr); err != nil {
 				return err
 			}
 			if err := p.Install.Wait(); err != nil {
-				log.Println("[plugin]", p.Name, "installation failed:", err)
+				log.Println(p.Name, "installation failed:", err)
 				return err
 			}
-			_ = ioutil.WriteFile(filepath.Join(p.dir, ".installed"), nil, 0644)
+			_ = ioutil.WriteFile(filepath.Join(p.Dir, ".installed"), nil, 0644)
 		}
 	}
 	return
 }
 
 func (p *Plugin) Start() (err error) {
-	if err = p.Entrypoint.Start(); err != nil {
+	if err = p.Entrypoint.Start(p.Dir, p.Name, p.wsAddr); err != nil {
 		return err
 	}
 	return nil

@@ -4,8 +4,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
-	"vrchat-osc-manager/internal/config"
 )
 
 type (
@@ -21,19 +19,18 @@ type (
 		Entrypoint  Entrypoint  `json:"entrypoint" toml:"entrypoint"`
 		Install     *Entrypoint `json:"install" toml:"install"`
 		Enabled     bool        `json:"enabled" toml:"enabled"`
-		dir         string      // plugin directory
+		wsAddr      string
+		Dir         string // plugin directory
 	}
 	Entrypoint struct {
-		dir        string
-		name       string
 		cmd        *exec.Cmd
 		Executable string   `json:"executable" toml:"executable"`
 		Args       []string `json:"args" toml:"args"`
 	}
 )
 
-func (e *Entrypoint) checkExecutable() error {
-	f := filepath.Join(e.dir, e.Executable)
+func (e *Entrypoint) checkExecutable(dir string) error {
+	f := filepath.Join(dir, e.Executable)
 	_, err := os.Stat(f)
 	if err != nil {
 		_, err = exec.LookPath(e.Executable)
@@ -43,15 +40,14 @@ func (e *Entrypoint) checkExecutable() error {
 	return nil
 }
 
-func (e *Entrypoint) Start() error {
+func (e *Entrypoint) Start(pluginDir, pluginName, wsAddr string) error {
 	cmd := exec.Command(e.Executable, e.Args...)
 	cmd.Env = []string{
-		"VRCOSCM_HOSTNAME=" + config.C.WebSocket.Hostname,
-		"VRCOSCM_PORT=" + strconv.Itoa(config.C.WebSocket.Port),
-		"VRCOSCM_PLUGIN=" + e.name,
+		"VRCOSCM_WS_ADDR=" + wsAddr,
+		"VRCOSCM_PLUGIN=" + pluginName,
 	}
 	e.cmd = cmd
-	cmd.Dir = e.dir
+	cmd.Dir = pluginDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Start()

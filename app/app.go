@@ -1,44 +1,31 @@
 package app
 
 import (
-	"io/ioutil"
+	"flag"
 	"log"
-	"path/filepath"
 	"vrchat-osc-manager/internal/config"
-	"vrchat-osc-manager/internal/plugin"
 )
 
+var configFile = flag.String("config", "config.toml", "config file")
+
 func init() {
-	config.LoadConfig("./config.toml")
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
 
 func Start() {
-	go oscServer()
-	go loadPlugins()
-	wsServer()
-}
+	flag.Parse()
 
-func loadPlugins() {
-	dir, err := ioutil.ReadDir("./plugins/")
-	if err != nil {
-		panic(err)
+	if _, err := config.LoadConfig(*configFile); err != nil {
+		log.Fatal(err)
 	}
-	for _, info := range dir {
-		if !info.IsDir() {
-			continue
+
+	osc := NewOSC(config.C.OSC.ClientPort, config.C.OSC.ServerAddr)
+	go func() {
+		if err := osc.Listen(); err != nil {
+			log.Fatal(err)
 		}
-		p, err := plugin.NewPlugin(filepath.Join("./plugins/", info.Name()))
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if err = p.Init(); err != nil {
-			log.Println(err)
-			continue
-		}
-		if err = p.Start(); err != nil {
-			log.Println(err)
-			continue
-		}
-	}
+	}()
+	go loadPlugins()
+	wsServer := NewWSServer(config.C.WebSocket.Hostname, config.C.WebSocket.Port, osc)
+	log.Fatal(wsServer.Listen())
 }
