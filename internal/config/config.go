@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/BurntSushi/toml"
 	"vrchat-osc-manager/internal/httputil2"
+
+	"github.com/BurntSushi/toml"
 )
 
 type (
