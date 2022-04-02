@@ -38,7 +38,7 @@ func NewWSServer(hostname string, port int, osc *OSC) *WSServer {
 	}
 }
 
-func (receiver *WSServer) handle(w http.ResponseWriter, r *http.Request) {
+func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
 	if err != nil {
 		log.Println(err)
@@ -48,7 +48,7 @@ func (receiver *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 		defer conn.Close()
 
 		for {
-			msg, op, err := wsutil.ReadClientData(conn)
+			msg, _, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				log.Println(err)
 				return
@@ -56,13 +56,13 @@ func (receiver *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 			//log.Println("[WebSocket Message]", string(msg))
 			var value wsMessage
 			if json.Unmarshal(msg, &value) == nil {
-				receiver.messageHandler(value, op, conn)
+				s.messageHandler(value, conn)
 			}
 		}
 	}()
 }
 
-func (receiver *WSServer) messageHandler(msg wsMessage, op ws.OpCode, conn net.Conn) {
+func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 	switch msg.Method {
 	case "send":
 		m := osc.NewMessage(msg.Addr)
@@ -79,7 +79,7 @@ func (receiver *WSServer) messageHandler(msg wsMessage, op ws.OpCode, conn net.C
 			log.Println("[WebSocket Message]", "Unknown type", reflect.TypeOf(v))
 			return
 		}
-		_ = receiver.osc.Send(m)
+		_ = s.osc.Send(m)
 
 	case "get_options":
 		if p, ok := config.C.Plugins[msg.Plugin]; ok {
@@ -88,7 +88,7 @@ func (receiver *WSServer) messageHandler(msg wsMessage, op ws.OpCode, conn net.C
 				Plugin:  msg.Plugin,
 				Options: p.Options(),
 			}); err == nil {
-				_ = wsutil.WriteServerMessage(conn, op, data)
+				_ = wsutil.WriteServerText(conn, data)
 			}
 		}
 
@@ -97,7 +97,7 @@ func (receiver *WSServer) messageHandler(msg wsMessage, op ws.OpCode, conn net.C
 	}
 }
 
-func (receiver *WSServer) Listen() error {
-	log.Printf("[WebSocket] Listening on %s:%d\n", receiver.hostname, receiver.port)
-	return http.ListenAndServe(fmt.Sprintf("%s:%d", receiver.hostname, receiver.port), http.HandlerFunc(receiver.handle))
+func (s *WSServer) Listen() error {
+	log.Printf("[WebSocket] Listening on %s:%d\n", s.hostname, s.port)
+	return http.ListenAndServe(fmt.Sprintf("%s:%d", s.hostname, s.port), http.HandlerFunc(s.handle))
 }
