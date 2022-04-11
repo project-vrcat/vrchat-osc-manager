@@ -1,7 +1,8 @@
 package config
 
 import (
-	"vrchat-osc-manager/internal/httputil2"
+	"strings"
+	"vrchat-osc-manager/internal/utils"
 
 	"github.com/BurntSushi/toml"
 )
@@ -18,7 +19,7 @@ type (
 		}
 		Plugins map[string]Plugin `toml:"plugins"`
 	}
-	Plugin map[string]interface{}
+	Plugin map[string]any
 )
 
 var C Config
@@ -29,7 +30,7 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, err
 	}
 	if C.WebSocket.Port == -1 {
-		C.WebSocket.Port = httputil2.PickPort()
+		C.WebSocket.Port = utils.PickPort()
 	}
 	return &C, nil
 }
@@ -44,7 +45,7 @@ func (p Plugin) Enabled() bool {
 	return false
 }
 
-func (p Plugin) Options() map[string]interface{} {
+func (p Plugin) Options() map[string]any {
 	m := make(map[string]interface{})
 	for k, v := range p {
 		if k == "enabled" {
@@ -53,4 +54,31 @@ func (p Plugin) Options() map[string]interface{} {
 		m[k] = v
 	}
 	return m
+}
+
+func (p Plugin) AvatarBind(avatar string) bool {
+	var avatars []string
+	if _ab, ok := p["avatar_bind"]; !ok {
+		return false
+	} else {
+		for _, a := range _ab.([]any) {
+			avatars = append(avatars, a.(string))
+		}
+	}
+	if contains(avatars, "all") {
+		return true
+	}
+	if strings.Index(avatar, "local") == 0 && contains(avatars, "all:local") {
+		return true
+	}
+	return contains(avatars, avatar)
+}
+
+func contains[T string](elems []T, v T) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }

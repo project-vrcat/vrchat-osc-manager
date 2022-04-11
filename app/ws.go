@@ -65,6 +65,13 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 	switch msg.Method {
 	case "send":
+		p, ok := config.C.Plugins[msg.Plugin]
+		if !ok {
+			return
+		}
+		if !p.AvatarBind(nowAvatar) {
+			return
+		}
 		m := osc.NewMessage(msg.Addr)
 		switch v := msg.Value.(type) {
 		case float32:

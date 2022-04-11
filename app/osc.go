@@ -1,9 +1,8 @@
 package app
 
 import (
-	"log"
-
 	"github.com/hypebeast/go-osc/osc"
+	"log"
 )
 
 type OSC struct {
@@ -12,6 +11,8 @@ type OSC struct {
 	client     *osc.Client
 	server     *osc.Server
 }
+
+var nowAvatar string
 
 func NewOSC(clientPort int, serverAddr string) *OSC {
 	o := OSC{
@@ -30,7 +31,9 @@ func (receiver *OSC) Listen() error {
 	d := osc.NewStandardDispatcher()
 	_ = d.AddMsgHandler("/avatar/change", func(msg *osc.Message) {
 		if len(msg.Arguments) > 0 {
-			log.Println("AvatarChange:", msg.Arguments[0])
+			if avatar, ok := msg.Arguments[0].(string); ok {
+				nowAvatar = avatar
+			}
 		}
 	})
 	receiver.server = &osc.Server{Addr: receiver.ServerAddr, Dispatcher: d}

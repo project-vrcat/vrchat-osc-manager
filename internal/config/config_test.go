@@ -19,4 +19,6 @@ func TestConfig(t *testing.T) {
 	options := plugin.Options()
 	assert.NotNil(t, options)
 	assert.Equal(t, options["id"], "635e7cd8-0def-4d91-a108-c198f122f663")
+
+	assert.Equal(t, plugin.AvatarBind("all:local"), true)
 }
