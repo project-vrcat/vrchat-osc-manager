@@ -1,14 +1,43 @@
 package plugin
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/BurntSushi/toml"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
+	"vrchat-osc-manager/internal/utils"
+)
 
-	"github.com/BurntSushi/toml"
+type (
+	Plugin struct {
+		Name        string      `json:"name" toml:"name"`
+		Author      string      `json:"author" toml:"author"`
+		Version     string      `json:"version" toml:"version"`
+		Description string      `json:"description" toml:"description"`
+		HomePage    string      `json:"homepage" toml:"homepage"`
+		Icon        string      `json:"icon" toml:"icon"`
+		OptionsPage string      `json:"options_page" toml:"options_page"`
+		Inputs      []string    `json:"inputs" toml:"inputs"`
+		Entrypoint  Entrypoint  `json:"entrypoint" toml:"entrypoint"`
+		Install     *Entrypoint `json:"install" toml:"install"`
+		Enabled     bool        `json:"enabled" toml:"enabled"`
+		wsAddr      string
+		Dir         string // plugin directory
+	}
+	Entrypoint struct {
+		cmd        *exec.Cmd
+		stop       bool
+		Executable string   `json:"executable" toml:"executable"`
+		Args       []string `json:"args" toml:"args"`
+	}
 )
 
 func NewPlugin(dir, wsAddr string) (*Plugin, error) {
@@ -69,4 +98,92 @@ func (p *Plugin) Stop() (err error) {
 		return err
 	}
 	return nil
+}
+
+func (e *Entrypoint) checkExecutable(dir string) error {
+	f := filepath.Join(dir, e.Executable)
+	_, err := os.Stat(f)
+	if err != nil {
+		_, err = exec.LookPath(e.Executable)
+		return err
+	}
+	e.Executable, _ = filepath.Abs(f)
+	return nil
+}
+
+func (e *Entrypoint) Start(pluginDir, pluginName, wsAddr string) error {
+	cmd := exec.Command(e.Executable, e.Args...)
+	cmd.Env = []string{
+		"VRCOSCM_WS_ADDR=" + wsAddr,
+		"VRCOSCM_PLUGIN=" + pluginName,
+	}
+	e.cmd = cmd
+	cmd.Dir = pluginDir
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+
+	done := make(chan error)
+	defer func() {
+		done <- cmd.Wait()
+	}()
+
+	scanner := func(r io.ReadCloser, _log func(string, string)) {
+		reader := bufio.NewReader(r)
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				line, err := reader.ReadString('\n')
+				if err == nil {
+					_log(pluginName, line)
+				}
+			}
+		}
+	}
+
+	go scanner(stdout, e.log)
+	go scanner(stderr, e.error)
+
+	return cmd.Start()
+}
+
+func (e *Entrypoint) Wait() *exec.ExitError {
+	if e.cmd != nil {
+		if err := e.cmd.Wait(); err != nil {
+			return err.(*exec.ExitError)
+		}
+	}
+	return nil
+}
+
+func (e *Entrypoint) Stop() error {
+	if e.cmd != nil {
+		if e.cmd.Process != nil {
+			return e.cmd.Process.Kill()
+		}
+	}
+	return nil
+}
+
+func (e *Entrypoint) error(pluginName, err string) {
+	fmt.Print(strings.Join([]string{
+		utils.Color(36, "[", pluginName, "]"),
+		utils.Color(31, "[ERROR]"),
+		err,
+	}, " "))
+}
+
+func (e *Entrypoint) log(pluginName, line string) {
+	fmt.Print(strings.Join([]string{
+		utils.Color(36, "[", pluginName, "]"),
+		line,
+	}, " "))
 }

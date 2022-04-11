@@ -36,3 +36,9 @@ func TestPlugin_Start(t *testing.T) {
 		return
 	}
 }
+
+func TestEntrypointLog(t *testing.T) {
+	e := Entrypoint{}
+	e.log("test", "Hello World")
+	e.error("test", "test error")
+}

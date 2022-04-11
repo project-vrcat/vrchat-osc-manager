@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"reflect"
 	"vrchat-osc-manager/internal/config"
+	"vrchat-osc-manager/internal/utils"
 
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
@@ -105,6 +106,6 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 }
 
 func (s *WSServer) Listen() error {
-	log.Printf("[WebSocket] Listening on %s:%d\n", s.hostname, s.port)
+	fmt.Printf("%s Listening on %s:%d\n", utils.Color(34, "[WebSocket]"), s.hostname, s.port)
 	return http.ListenAndServe(fmt.Sprintf("%s:%d", s.hostname, s.port), http.HandlerFunc(s.handle))
 }
