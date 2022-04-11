@@ -1,6 +1,8 @@
 .idea
 .vscode
 *.exe
-**/plugins/
 
-**/config.development.toml
+/plugins/*
+!/plugins/.gitkeep
+
+/config.development.toml
