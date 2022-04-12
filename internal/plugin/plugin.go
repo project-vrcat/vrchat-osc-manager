@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/gookit/color"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,7 +14,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"vrchat-osc-manager/internal/utils"
 )
 
 type (
@@ -177,15 +177,15 @@ func (e *Entrypoint) Stop() error {
 
 func (e *Entrypoint) error(pluginName, err string) {
 	fmt.Print(strings.Join([]string{
-		utils.Color(36, "[", pluginName, "]"),
-		utils.Color(31, "[ERROR]"),
+		color.FgCyan.Render("[" + pluginName + "]"),
+		color.FgRed.Render("[ERROR]"),
 		err,
 	}, " "))
 }
 
 func (e *Entrypoint) log(pluginName, line string) {
 	fmt.Print(strings.Join([]string{
-		utils.Color(36, "[", pluginName, "]"),
+		color.FgCyan.Render("[" + pluginName + "]"),
 		line,
 	}, " "))
 }

@@ -2,8 +2,8 @@ package app
 
 import (
 	"fmt"
+	"github.com/gookit/color"
 	"github.com/hypebeast/go-osc/osc"
-	"vrchat-osc-manager/internal/utils"
 )
 
 type OSC struct {
@@ -38,6 +38,6 @@ func (receiver *OSC) Listen() error {
 		}
 	})
 	receiver.server = &osc.Server{Addr: receiver.ServerAddr, Dispatcher: d}
-	fmt.Printf("%s Listening on %s\n", utils.Color(34, "[OSCServer]"), receiver.ServerAddr)
+	fmt.Printf("%s Listening on %s\n", color.FgLightBlue.Render("[OSCServer]"), receiver.ServerAddr)
 	return receiver.server.ListenAndServe()
 }
