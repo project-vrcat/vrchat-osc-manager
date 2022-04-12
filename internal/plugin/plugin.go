@@ -132,7 +132,9 @@ func (e *Entrypoint) Start(pluginDir, pluginName, wsAddr string) error {
 	e.done = make(chan error)
 	done := make(chan error)
 	defer func() {
-		done <- cmd.Wait()
+		go func() {
+			done <- cmd.Wait()
+		}()
 	}()
 
 	scanner := func(r io.ReadCloser, _log func(string, string)) {
