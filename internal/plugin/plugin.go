@@ -34,7 +34,7 @@ type (
 	}
 	Entrypoint struct {
 		cmd        *exec.Cmd
-		stop       bool
+		done       chan error
 		Executable string   `json:"executable" toml:"executable"`
 		Args       []string `json:"args" toml:"args"`
 	}
@@ -129,6 +129,7 @@ func (e *Entrypoint) Start(pluginDir, pluginName, wsAddr string) error {
 		return err
 	}
 
+	e.done = make(chan error)
 	done := make(chan error)
 	defer func() {
 		done <- cmd.Wait()
@@ -138,7 +139,8 @@ func (e *Entrypoint) Start(pluginDir, pluginName, wsAddr string) error {
 		reader := bufio.NewReader(r)
 		for {
 			select {
-			case <-done:
+			case err := <-done:
+				e.done <- err
 				return
 			default:
 				line, err := reader.ReadString('\n')
@@ -156,8 +158,8 @@ func (e *Entrypoint) Start(pluginDir, pluginName, wsAddr string) error {
 }
 
 func (e *Entrypoint) Wait() *exec.ExitError {
-	if e.cmd != nil {
-		if err := e.cmd.Wait(); err != nil {
+	if e.cmd != nil && e.done != nil {
+		if err := <-e.done; err != nil {
 			return err.(*exec.ExitError)
 		}
 	}
