@@ -2,7 +2,9 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -50,7 +52,7 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 
 		for {
 			msg, _, err := wsutil.ReadClientData(conn)
-			if err != nil {
+			if err != nil && !errors.Is(err, io.EOF) {
 				log.Println(err)
 				return
 			}
