@@ -67,6 +67,13 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 	switch msg.Method {
 	case "send":
+		// 禁止未注册的插件发送消息
+		_, ok := plugins[msg.Plugin]
+		if !ok {
+			return
+		}
+
+		// 禁止向非绑定Avatar发送消息
 		p, ok := config.C.Plugins[msg.Plugin]
 		if !ok {
 			return
@@ -74,6 +81,7 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 		if !p.AvatarBind(nowAvatar) {
 			return
 		}
+
 		m := osc.NewMessage(msg.Addr)
 		switch v := msg.Value.(type) {
 		case float32:
