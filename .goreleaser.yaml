@@ -11,6 +11,11 @@ builds:
 archives:
   - replacements:
       amd64: x86_64
+    files:
+      - LICENSE
+      - README.md
+      - config.toml
+      - plugins/*
 checksum:
   name_template: 'checksums.txt'
 snapshot:
