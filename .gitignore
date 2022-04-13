@@ -6,3 +6,5 @@
 !/plugins/.gitkeep
 
 /config.development.toml
+
+dist/
