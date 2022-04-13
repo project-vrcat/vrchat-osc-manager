@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"reflect"
+	"strings"
 	"vrchat-osc-manager/internal/config"
 )
 
@@ -73,13 +74,16 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 			return
 		}
 
-		// 禁止向非绑定Avatar发送消息
-		p, ok := config.C.Plugins[msg.Plugin]
-		if !ok {
-			return
-		}
-		if !p.AvatarBind(nowAvatar) {
-			return
+		valueStr, ok := msg.Value.(string)
+		if ok && strings.Index(valueStr, "/avatar") == 0 {
+			// 禁止向非绑定Avatar发送消息
+			p, ok := config.C.Plugins[msg.Plugin]
+			if !ok {
+				return
+			}
+			if !p.AvatarBind(nowAvatar) {
+				return
+			}
 		}
 
 		m := osc.NewMessage(msg.Addr)
