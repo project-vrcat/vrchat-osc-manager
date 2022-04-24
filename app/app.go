@@ -27,5 +27,8 @@ func Start() {
 	}()
 	go loadPlugins()
 	wsServer := NewWSServer(config.C.WebSocket.Hostname, config.C.WebSocket.Port, osc)
-	log.Fatal(wsServer.Listen())
+	go func() {
+		log.Fatal(wsServer.Listen())
+	}()
+	GUI()
 }
