@@ -16,7 +16,6 @@ var (
 )
 
 func GUI() {
-	w32.HideConsoleWindow()
 	ui = webview2.NewWithOptions(webview2.WebViewOptions{
 		WindowOptions: webview2.WindowOptions{
 			Title: "VRChat OSC Manager",
