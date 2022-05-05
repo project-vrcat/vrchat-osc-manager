@@ -48,7 +48,7 @@ func (p Plugin) Enabled() bool {
 func (p Plugin) Options() map[string]any {
 	m := make(map[string]interface{})
 	for k, v := range p {
-		if k == "enabled" {
+		if k == "enabled" || k == "avatar_bind" {
 			continue
 		}
 		m[k] = v
