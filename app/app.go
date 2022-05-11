@@ -20,15 +20,10 @@ func Start() {
 	}
 
 	osc := NewOSC(config.C.OSC.ClientPort, config.C.OSC.ServerAddr)
-	go func() {
-		if err := osc.Listen(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-	go loadPlugins()
 	wsServer := NewWSServer(config.C.WebSocket.Hostname, config.C.WebSocket.Port, osc)
-	go func() {
-		log.Fatal(wsServer.Listen())
-	}()
+
+	go func() { log.Fatal(osc.Listen(wsServer)) }()
+	go loadPlugins()
+	go func() { log.Fatal(wsServer.Listen()) }()
 	GUI()
 }

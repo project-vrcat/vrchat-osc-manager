@@ -14,22 +14,28 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
+	"time"
 	"vrchat-osc-manager/internal/config"
 )
 
 type (
 	WSServer struct {
-		hostname string
-		port     int
-		osc      *OSC
+		hostname      string
+		port          int
+		osc           *OSC
+		parameterChan sync.Map
 	}
 
 	wsMessage struct {
-		Method  string                 `json:"method"`
-		Plugin  string                 `json:"plugin"`
-		Addr    string                 `json:"addr,omitempty"`
-		Value   interface{}            `json:"value,omitempty"`
-		Options map[string]interface{} `json:"options,omitempty"`
+		Method         string         `json:"method"`
+		Plugin         string         `json:"plugin"`
+		Addr           string         `json:"addr,omitempty"`
+		Value          any            `json:"value,omitempty"`
+		Options        map[string]any `json:"options,omitempty"`
+		Parameters     []string       `json:"parameters,omitempty"`
+		ParameterName  string         `json:"parameterName,omitempty"`
+		ParameterValue any            `json:"parameterValue,omitempty"`
 	}
 )
 
@@ -47,8 +53,38 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
+	pluginName := r.URL.Query().Get("plugin")
 	go func() {
-		defer conn.Close()
+		closeCh := make(chan struct{})
+		defer func() {
+			close(closeCh)
+			conn.Close()
+		}()
+
+		go func() {
+			for {
+				_ch, ok := s.parameterChan.Load(pluginName)
+				if !ok {
+					time.Sleep(time.Millisecond * 100)
+					continue
+				}
+				ch := _ch.(chan parameterInfo)
+				select {
+				case <-closeCh:
+					log.Println("Close")
+					return
+				case p := <-ch:
+					if data, err := json.Marshal(wsMessage{
+						Method:         "parameters",
+						Plugin:         pluginName,
+						ParameterName:  p.Name,
+						ParameterValue: p.Value,
+					}); err == nil {
+						_ = wsutil.WriteServerText(conn, data)
+					}
+				}
+			}
+		}()
 
 		for {
 			msg, _, err := wsutil.ReadClientData(conn)
@@ -111,6 +147,12 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 			}); err == nil {
 				_ = wsutil.WriteServerText(conn, data)
 			}
+		}
+
+	case "listen_parameters":
+		if p, ok := plugins[msg.Plugin]; ok {
+			pluginsParameters.Store(p.Name, msg.Parameters)
+			s.parameterChan.Store(p.Name, make(chan parameterInfo, 10))
 		}
 
 	default:
