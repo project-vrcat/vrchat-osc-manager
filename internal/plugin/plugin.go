@@ -30,7 +30,7 @@ type (
 		Install     *Entrypoint `json:"install" toml:"install"`
 		Enabled     bool        `json:"enabled" toml:"enabled"`
 		wsAddr      string
-		Dir         string // plugin directory
+		Dir         string `json:"-" toml:"-"` // plugin directory
 	}
 	Entrypoint struct {
 		cmd        *exec.Cmd
