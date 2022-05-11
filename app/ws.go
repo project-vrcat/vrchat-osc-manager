@@ -63,9 +63,9 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 
 		go func() {
 			for {
+				time.Sleep(time.Millisecond * 100)
 				_ch, ok := s.parameterChan.Load(pluginName)
 				if !ok {
-					time.Sleep(time.Millisecond * 100)
 					continue
 				}
 				ch := _ch.(chan parameterInfo)
@@ -80,6 +80,13 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 						ParameterName:  p.Name,
 						ParameterValue: p.Value,
 					}); err == nil {
+						p, ok := config.C.Plugins[pluginName]
+						if !ok {
+							continue
+						}
+						if !p.AvatarBind(nowAvatar) {
+							continue
+						}
 						_ = wsutil.WriteServerText(conn, data)
 					}
 				}
