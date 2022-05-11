@@ -1,0 +1,7 @@
+name = "example-plugin"
+version = "0.0.1"
+author = "Gizmo"
+
+[entrypoint]
+args = ["run", "--allow-env", "--allow-net", "plugin.ts"]
+executable = "deno.exe"

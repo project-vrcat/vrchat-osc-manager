@@ -1,9 +1,12 @@
 .idea
-.vscode
+/.vscode
 *.exe
+*.lnk
 
 /plugins/*
 !/plugins/.gitkeep
+!/plugins/example-plugin
+/plugins/example-plugin/.installed
 
 /config.development.toml
 

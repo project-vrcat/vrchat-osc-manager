@@ -6,7 +6,7 @@ port = 8787
 server_addr = "localhost:9001"
 client_port = 9000
 
-[plugins.pulsoid-plugin]
-enabled = false
-id = "635e7cd8-0def-4d91-a108-c198f122f663"
+[plugins.example-plugin]
+enabled = true
 avatar_bind = ["all:local"]
+parametes = ["VRCEmote"]
