@@ -4,8 +4,8 @@ const manager = new Manager();
 await manager.connect();
 
 const options = await manager.getOptions();
-const parametes = options.parametes as string[];
-manager.listenParameters(parametes);
+const parameters = options.parameters as string[];
+manager.listenParameters(parameters);
 manager.on(
   "parameters",
   (name, value) => console.log("Parameter:", name, value),

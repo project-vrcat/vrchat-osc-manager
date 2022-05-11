@@ -9,4 +9,4 @@ client_port = 9000
 [plugins.example-plugin]
 enabled = true
 avatar_bind = ["all:local"]
-parametes = ["VRCEmote"]
+parameters = ["VRCEmote"]
