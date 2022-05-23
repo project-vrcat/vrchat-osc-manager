@@ -70,29 +70,22 @@ func ExtractIcon(exeFileName string, iconIndex int32) uintptr {
 	ret, _, _ := procExtractIcon.Call(
 		uintptr(0),
 		uintptr(unsafe.Pointer(e)),
-		uintptr(iconIndex),
-	)
+		uintptr(iconIndex))
 	return ret
 }
 
 func SendMessage(hwnd unsafe.Pointer, msg uint32, wParam, lParam uintptr) uintptr {
-	ret, _, _ := syscall.Syscall6(procSendMessage.Addr(), 4,
-		uintptr(hwnd), uintptr(msg),
-		wParam, lParam,
-		0, 0)
+	ret, _, _ := procSendMessage.Call(uintptr(hwnd), uintptr(msg), wParam, lParam)
 	return ret
 }
 
-func MessageBox(hwnd unsafe.Pointer, text, caption string, flags uint) uintptr {
+func MessageBox(hwnd uintptr, text, caption string, flags uint) uintptr {
 	_text, _ := syscall.UTF16PtrFromString(text)
 	_caption, _ := syscall.UTF16PtrFromString(caption)
-	ret, _, _ := syscall.Syscall6(procMessageBox.Addr(), 4,
-		uintptr(hwnd),
+	ret, _, _ := procMessageBox.Call(hwnd,
 		uintptr(unsafe.Pointer(_text)),
 		uintptr(unsafe.Pointer(_caption)),
-		uintptr(flags),
-		0, 0,
-	)
+		uintptr(flags))
 	return ret
 }
 
