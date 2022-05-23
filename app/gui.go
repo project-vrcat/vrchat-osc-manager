@@ -11,15 +11,19 @@ import (
 	"vrchat-osc-manager/internal/w32"
 )
 
+const guiTitle = "VRChat OSC Manager"
+
 var (
 	ui webview2.WebView
 )
 
 func GUI() {
+	if RuntimeVersion() == "" {
+		w32.MessageBox(0, "Please install Webview2 Runtime to use this application.", guiTitle, 0)
+		return
+	}
 	ui = webview2.NewWithOptions(webview2.WebViewOptions{
-		WindowOptions: webview2.WindowOptions{
-			Title: "VRChat OSC Manager",
-		},
+		WindowOptions: webview2.WindowOptions{Title: guiTitle},
 	})
 	defer ui.Destroy()
 
