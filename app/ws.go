@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/gobwas/ws"
 	"github.com/gobwas/ws/wsutil"
-	"github.com/gookit/color"
 	"github.com/hypebeast/go-osc/osc"
 	"io"
 	"log"
@@ -17,6 +16,7 @@ import (
 	"sync"
 	"time"
 	"vrchat-osc-manager/internal/config"
+	"vrchat-osc-manager/internal/logger"
 )
 
 type (
@@ -168,6 +168,6 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 }
 
 func (s *WSServer) Listen() error {
-	fmt.Printf("%s Listening on %s:%d\n", color.FgLightBlue.Render("[WebSocket]"), s.hostname, s.port)
+	logger.App("OSCServer").Printf("Listening on %s:%d\n", s.hostname, s.port)
 	return http.ListenAndServe(fmt.Sprintf("%s:%d", s.hostname, s.port), http.HandlerFunc(s.handle))
 }

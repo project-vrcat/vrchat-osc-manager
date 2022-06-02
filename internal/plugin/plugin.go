@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/BurntSushi/toml"
-	"github.com/gookit/color"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"vrchat-osc-manager/internal/logger"
 )
 
 type (
@@ -178,16 +177,10 @@ func (e *Entrypoint) Stop() error {
 }
 
 func (e *Entrypoint) error(pluginName, err string) {
-	fmt.Print(strings.Join([]string{
-		color.FgCyan.Render("[" + pluginName + "]"),
-		color.FgRed.Render("[ERROR]"),
-		err,
-	}, " "))
+	_err := strings.TrimSpace(err)
+	logger.Plugin(pluginName).Error(_err)
 }
 
 func (e *Entrypoint) log(pluginName, line string) {
-	fmt.Print(strings.Join([]string{
-		color.FgCyan.Render("[" + pluginName + "]"),
-		line,
-	}, " "))
+	logger.Plugin(pluginName).Print(line)
 }
