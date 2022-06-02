@@ -8,7 +8,6 @@ import (
 type (
 	logger struct {
 		name string
-		err  string
 	}
 )
 
@@ -25,7 +24,8 @@ func Plugin(name string) *logger {
 }
 
 func (l *logger) Error(err any) {
-	fmt.Println(l.name+color.FgRed.Render("[ERROR]"), err)
+	_err := color.BgRed.Render(color.FgWhite.Render(" ERROR "))
+	fmt.Println(_err+l.name, err)
 }
 
 func (l *logger) Print(a ...any) {
