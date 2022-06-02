@@ -33,7 +33,9 @@ func GUI() {
 
 	chromium := GetChromium(ui)
 	settings, _ := chromium.GetSettings()
-	_ = settings.PutAreDevToolsEnabled(false)
+	if !*debugMode {
+		_ = settings.PutAreDevToolsEnabled(false)
+	}
 	_ = settings.PutIsStatusBarEnabled(false)
 
 	folderPath, _ := filepath.Abs("./public")

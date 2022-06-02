@@ -10,6 +10,7 @@ import (
 var (
 	configFile = flag.String("config", "config.toml", "config file")
 	noGUI      = flag.Bool("nogui", false, "starts the server without a gui")
+	debugMode  = flag.Bool("debug", false, "enables debug mode")
 )
 
 func init() {
