@@ -21,8 +21,9 @@ type (
 			ServerAddr string `koanf:"server_addr"`
 			ClientPort int    `koanf:"client_port"`
 		} `koanf:"osc"`
-		RuntimePath string             `koanf:"runtime_path"`
-		Plugins     map[string]*Plugin `koanf:"plugins"`
+		RuntimeDir string             `koanf:"runtime_dir"`
+		PluginsDir string             `koanf:"plugins_dir"`
+		Plugins    map[string]*Plugin `koanf:"plugins"`
 	}
 	Plugin struct {
 		name       string
@@ -51,7 +52,8 @@ func init() {
 
 func LoadConfig(path string) (*Config, error) {
 	_ = k.Load(confmap.Provider(map[string]any{
-		"runtime_path":       "./runtime",
+		"plugins_dir":        "./plugins",
+		"runtime_dir":        "./runtime",
 		"websocket.hostname": "localhost",
 		"websocket.port":     utils.PickPort(),
 		"osc.server_addr":    "localhost:9001",

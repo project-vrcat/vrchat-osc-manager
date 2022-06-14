@@ -103,7 +103,7 @@ func (p *Plugin) Stop() (err error) {
 }
 
 func (e *Entrypoint) checkExecutable() error {
-	f := filepath.Join(config.C.RuntimePath, e.Executable)
+	f := filepath.Join(config.C.RuntimeDir, e.Executable)
 	_, err := os.Stat(f)
 	if err != nil {
 		_, err = exec.LookPath(e.Executable)

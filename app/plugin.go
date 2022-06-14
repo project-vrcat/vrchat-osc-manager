@@ -10,14 +10,12 @@ import (
 	"vrchat-osc-manager/internal/plugin"
 )
 
-const pluginsDir = "plugins"
-
 var plugins = make(map[string]*plugin.Plugin)
 var pluginsParameters = sync.Map{}
 var pluginsAvatarChange = sync.Map{}
 
 func loadPlugins() {
-	dir, err := ioutil.ReadDir(pluginsDir)
+	dir, err := ioutil.ReadDir(config.C.PluginsDir)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +28,7 @@ func loadPlugins() {
 			continue
 		}
 		p, err := plugin.NewPlugin(
-			filepath.Join(pluginsDir, info.Name()),
+			filepath.Join(config.C.PluginsDir, info.Name()),
 			fmt.Sprintf("%s:%d", config.C.WebSocket.Hostname, config.C.WebSocket.Port),
 		)
 		if err != nil {
