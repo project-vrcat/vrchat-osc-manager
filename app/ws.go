@@ -208,6 +208,6 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 }
 
 func (s *WSServer) Listen() error {
-	logger.App("OSCServer").Printf("Listening on %s:%d\n", s.hostname, s.port)
+	logger.App("WebSocket").Printf("Listening on %s:%d\n", s.hostname, s.port)
 	return http.ListenAndServe(fmt.Sprintf("%s:%d", s.hostname, s.port), http.HandlerFunc(s.handle))
 }
