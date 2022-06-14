@@ -17,7 +17,8 @@ type (
 			ServerAddr string `toml:"server_addr"`
 			ClientPort int    `toml:"client_port"`
 		}
-		Plugins map[string]Plugin `toml:"plugins"`
+		RuntimePath string            `toml:"runtime_path"`
+		Plugins     map[string]Plugin `toml:"plugins"`
 	}
 	Plugin map[string]any
 )
@@ -31,6 +32,9 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	if C.WebSocket.Port == -1 {
 		C.WebSocket.Port = utils.PickPort()
+	}
+	if C.RuntimePath == "" {
+		C.RuntimePath = "./runtime"
 	}
 	return &C, nil
 }

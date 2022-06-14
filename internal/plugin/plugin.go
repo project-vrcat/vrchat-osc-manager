@@ -1,5 +1,6 @@
 package plugin
 
+import "C"
 import (
 	"bufio"
 	"encoding/json"
@@ -12,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/logger"
 )
 
@@ -63,13 +65,13 @@ func (p *Plugin) load() error {
 }
 
 func (p *Plugin) Init() (err error) {
-	if err = p.Entrypoint.checkExecutable(p.Dir); err != nil {
+	if err = p.Entrypoint.checkExecutable(); err != nil {
 		return err
 	}
 	if p.Install != nil {
 		// check if the plugin is already installed
 		if _, err = os.Stat(filepath.Join(p.Dir, ".installed")); err != nil {
-			if err = p.Install.checkExecutable(p.Dir); err != nil {
+			if err = p.Install.checkExecutable(); err != nil {
 				return err
 			}
 			if err = p.Install.Start(p.Dir, p.Name, p.wsAddr); err != nil {
@@ -99,8 +101,8 @@ func (p *Plugin) Stop() (err error) {
 	return nil
 }
 
-func (e *Entrypoint) checkExecutable(dir string) error {
-	f := filepath.Join(dir, e.Executable)
+func (e *Entrypoint) checkExecutable() error {
+	f := filepath.Join(config.C.RuntimePath, e.Executable)
 	_, err := os.Stat(f)
 	if err != nil {
 		_, err = exec.LookPath(e.Executable)
