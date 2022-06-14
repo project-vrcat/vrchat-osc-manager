@@ -51,7 +51,7 @@ func NewPlugin(dir, wsAddr string) (*Plugin, error) {
 }
 
 func (p *Plugin) load() error {
-	t, err := toml.LoadFile(filepath.Join(p.Dir, "plugin.toml"))
+	t, err := toml.LoadFile(filepath.Join(p.Dir, "manifest.toml"))
 	if err != nil {
 		return err
 	}
