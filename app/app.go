@@ -4,13 +4,10 @@ import (
 	"flag"
 	"log"
 	"vrchat-osc-manager/internal/config"
-	"vrchat-osc-manager/internal/w32"
 )
 
 var (
 	configFile = flag.String("config", "config.toml", "config file")
-	noGUI      = flag.Bool("nogui", false, "starts the server without a gui")
-	debugMode  = flag.Bool("debug", false, "enables debug mode")
 )
 
 func init() {
@@ -29,11 +26,5 @@ func Start() {
 
 	go func() { log.Fatal(osc.Listen(wsServer)) }()
 	go loadPlugins()
-	if *noGUI {
-		log.Fatal(wsServer.Listen())
-	} else {
-		go func() { log.Fatal(wsServer.Listen()) }()
-		w32.HideConsoleWindow()
-		GUI()
-	}
+	log.Fatal(wsServer.Listen())
 }
