@@ -4,9 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/hypebeast/go-osc/osc"
 	"io"
 	"log"
 	"net"
@@ -17,14 +14,19 @@ import (
 	"time"
 	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/logger"
+
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/hypebeast/go-osc/osc"
 )
 
 type (
 	WSServer struct {
-		hostname      string
-		port          int
-		osc           *OSC
-		parameterChan sync.Map
+		hostname         string
+		port             int
+		osc              *OSC
+		parameterChan    sync.Map
+		avatarChangeChan sync.Map
 	}
 
 	wsMessage struct {
@@ -88,6 +90,38 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 							continue
 						}
 						_ = wsutil.WriteServerText(conn, data)
+					}
+				}
+			}
+		}()
+
+		go func() {
+			for {
+				time.Sleep(time.Millisecond * 100)
+				_ch, ok := s.avatarChangeChan.Load(pluginName)
+				if !ok {
+					continue
+				}
+				ch := _ch.(chan bool)
+				select {
+				case <-closeCh:
+					log.Println("Close")
+					return
+				case change := <-ch:
+					if change {
+						if data, err := json.Marshal(wsMessage{
+							Method: "avatar_change",
+							Plugin: pluginName,
+						}); err == nil {
+							p, ok := config.C.Plugins[pluginName]
+							if !ok {
+								continue
+							}
+							if !p.AvatarBind(nowAvatar) {
+								continue
+							}
+							_ = wsutil.WriteServerText(conn, data)
+						}
 					}
 				}
 			}
@@ -160,6 +194,12 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 		if p, ok := plugins[msg.Plugin]; ok {
 			pluginsParameters.Store(p.Name, msg.Parameters)
 			s.parameterChan.Store(p.Name, make(chan parameterInfo, 10))
+		}
+
+	case "listen_avatar_change":
+		if p, ok := plugins[msg.Plugin]; ok {
+			pluginsAvatarChange.Store(p.Name, false)
+			s.avatarChangeChan.Store(p.Name, make(chan bool))
 		}
 
 	default:

@@ -1,9 +1,10 @@
 package app
 
 import (
-	"github.com/hypebeast/go-osc/osc"
 	"strings"
 	"vrchat-osc-manager/internal/logger"
+
+	"github.com/hypebeast/go-osc/osc"
 )
 
 type (
@@ -60,6 +61,13 @@ func (receiver *OSC) Listen(ws *WSServer) error {
 		if len(msg.Arguments) > 0 {
 			if avatar, ok := msg.Arguments[0].(string); ok {
 				nowAvatar = avatar
+				pluginsAvatarChange.Range(func(k, v any) bool {
+					pluginName := k.(string)
+					if ch, ok := ws.avatarChangeChan.Load(pluginName); ok {
+						ch.(chan bool) <- true
+					}
+					return true
+				})
 			}
 		}
 	})

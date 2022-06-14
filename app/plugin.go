@@ -14,6 +14,7 @@ const pluginsDir = "plugins"
 
 var plugins = make(map[string]*plugin.Plugin)
 var pluginsParameters = sync.Map{}
+var pluginsAvatarChange = sync.Map{}
 
 func loadPlugins() {
 	dir, err := ioutil.ReadDir(pluginsDir)
