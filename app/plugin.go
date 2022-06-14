@@ -25,10 +25,9 @@ func loadPlugins() {
 		if !info.IsDir() {
 			continue
 		}
-		enabled := false
 		c, ok := config.C.Plugins[info.Name()]
-		if ok {
-			enabled = c.Enabled()
+		if !ok {
+			continue
 		}
 		p, err := plugin.NewPlugin(
 			filepath.Join(pluginsDir, info.Name()),
@@ -44,7 +43,7 @@ func loadPlugins() {
 		}
 		plugins[p.Name] = p
 		pluginsParameters.Store(p.Name, []string{})
-		if enabled {
+		if c.Enabled {
 			if err = p.Init(); err != nil {
 				log.Println(err)
 				continue

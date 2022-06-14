@@ -86,7 +86,7 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 						if !ok {
 							continue
 						}
-						if !p.AvatarBind(nowAvatar) {
+						if !p.CheckAvatarBind(nowAvatar) {
 							continue
 						}
 						_ = wsutil.WriteServerText(conn, data)
@@ -117,7 +117,7 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 							if !ok {
 								continue
 							}
-							if !p.AvatarBind(nowAvatar) {
+							if !p.CheckAvatarBind(nowAvatar) {
 								continue
 							}
 							_ = wsutil.WriteServerText(conn, data)
@@ -158,7 +158,7 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 			if !ok {
 				return
 			}
-			if !p.AvatarBind(nowAvatar) {
+			if !p.CheckAvatarBind(nowAvatar) {
 				return
 			}
 		}

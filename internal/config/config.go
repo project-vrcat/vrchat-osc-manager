@@ -1,81 +1,96 @@
 package config
 
 import (
+	"reflect"
 	"strings"
 	"vrchat-osc-manager/internal/utils"
 
-	"github.com/BurntSushi/toml"
+	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/file"
 )
 
 type (
 	Config struct {
 		WebSocket struct {
-			Hostname string `toml:"hostname"`
-			Port     int    `toml:"port"`
-		}
+			Hostname string `koanf:"hostname"`
+			Port     int    `koanf:"port"`
+		} `koanf:"websocket"`
 		OSC struct {
-			ServerAddr string `toml:"server_addr"`
-			ClientPort int    `toml:"client_port"`
-		}
-		RuntimePath string            `toml:"runtime_path"`
-		Plugins     map[string]Plugin `toml:"plugins"`
+			ServerAddr string `koanf:"server_addr"`
+			ClientPort int    `koanf:"client_port"`
+		} `koanf:"osc"`
+		RuntimePath string             `koanf:"runtime_path"`
+		Plugins     map[string]*Plugin `koanf:"plugins"`
 	}
-	Plugin map[string]any
+	Plugin struct {
+		name       string
+		Enabled    bool     `koanf:"enabled"`
+		AvatarBind []string `koanf:"avatar_bind"`
+	}
 )
 
-var C Config
+var (
+	C          Config
+	k          = koanf.New(".")
+	pluginTags []string
+)
+
+func init() {
+	t := reflect.TypeOf(Plugin{})
+	num := t.NumField()
+	for i := 0; i < num; i++ {
+		f := t.Field(i)
+		tag := f.Tag.Get("koanf")
+		if tag != "" && f.IsExported() {
+			pluginTags = append(pluginTags, tag)
+		}
+	}
+}
 
 func LoadConfig(path string) (*Config, error) {
-	_, err := toml.DecodeFile(path, &C)
-	if err != nil {
+	_ = k.Load(confmap.Provider(map[string]any{
+		"runtime_path":       "./runtime",
+		"websocket.hostname": "localhost",
+		"websocket.port":     utils.PickPort(),
+		"osc.server_addr":    "localhost:9001",
+		"osc.client_port":    9000,
+	}, "."), nil)
+	if err := k.Load(file.Provider(path), toml.Parser()); err != nil {
 		return nil, err
 	}
-	if C.WebSocket.Port == -1 {
-		C.WebSocket.Port = utils.PickPort()
+	if err := k.Unmarshal("", &C); err != nil {
+		return nil, err
 	}
-	if C.RuntimePath == "" {
-		C.RuntimePath = "./runtime"
+	for key, plugin := range C.Plugins {
+		plugin.name = key
 	}
 	return &C, nil
 }
 
-func (p Plugin) Enabled() bool {
-	e, ok := p["enabled"]
-	if ok {
-		if e, ok := e.(bool); ok {
-			return e
-		}
-	}
-	return false
-}
-
 func (p Plugin) Options() map[string]any {
-	m := make(map[string]interface{})
-	for k, v := range p {
-		if k == "enabled" || k == "avatar_bind" {
-			continue
+	m := k.Get("plugins." + p.name).(map[string]any)
+	r := make(map[string]any)
+	for k, v := range m {
+		if !contains(pluginTags, k) {
+			r[k] = v
 		}
-		m[k] = v
 	}
-	return m
+	return r
 }
 
-func (p Plugin) AvatarBind(avatar string) bool {
-	var avatars []string
-	if _ab, ok := p["avatar_bind"]; !ok {
+func (p Plugin) CheckAvatarBind(avatar string) bool {
+	if p.AvatarBind == nil {
 		return false
-	} else {
-		for _, a := range _ab.([]any) {
-			avatars = append(avatars, a.(string))
-		}
 	}
-	if contains(avatars, "all") {
+	if contains(p.AvatarBind, "all") {
 		return true
 	}
-	if strings.Index(avatar, "local") == 0 && contains(avatars, "all:local") {
+	if strings.Index(avatar, "local") == 0 && contains(p.AvatarBind, "all:local") {
 		return true
 	}
-	return contains(avatars, avatar)
+	return contains(p.AvatarBind, avatar)
 }
 
 func contains[T string](elems []T, v T) bool {

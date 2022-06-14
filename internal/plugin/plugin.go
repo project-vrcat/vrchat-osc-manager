@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
-	"github.com/BurntSushi/toml"
 	"io"
 	"io/ioutil"
 	"log"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/logger"
+
+	"github.com/BurntSushi/toml"
 )
 
 type (

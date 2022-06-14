@@ -1,10 +1,6 @@
 [websocket]
-hostname = "localhost"
 port = 8787
 
-[osc]
-server_addr = "localhost:9001"
-client_port = 9000
 
 [plugins.example-plugin]
 enabled = true
