@@ -15,7 +15,7 @@ import (
 	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/logger"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml"
 )
 
 type (
@@ -51,8 +51,11 @@ func NewPlugin(dir, wsAddr string) (*Plugin, error) {
 }
 
 func (p *Plugin) load() error {
-	_, err := toml.DecodeFile(filepath.Join(p.Dir, "manifest.toml"), p)
+	t, err := toml.LoadFile(filepath.Join(p.Dir, "plugin.toml"))
 	if err != nil {
+		return err
+	}
+	if err = t.Unmarshal(p); err != nil {
 		f, err := ioutil.ReadFile(filepath.Join(p.Dir, "manifest.json"))
 		if err != nil {
 			return errors.New("can not open manifest file: " + p.Dir)
