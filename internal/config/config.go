@@ -3,6 +3,7 @@ package config
 import (
 	"reflect"
 	"strings"
+	"sync"
 	"vrchat-osc-manager/internal/utils"
 
 	"github.com/knadh/koanf"
@@ -26,9 +27,12 @@ type (
 		Plugins    map[string]*Plugin `koanf:"plugins"`
 	}
 	Plugin struct {
-		name       string
-		Enabled    bool     `koanf:"enabled"`
-		AvatarBind []string `koanf:"avatar_bind"`
+		m                  sync.Mutex
+		name               string
+		Enabled            bool     `koanf:"enabled"`
+		AvatarBind         []string `koanf:"avatar_bind"`
+		ListenAvatarChange bool
+		listenParameters   []string
 	}
 )
 
@@ -71,7 +75,20 @@ func LoadConfig(path string) (*Config, error) {
 	return &C, nil
 }
 
-func (p Plugin) Options() map[string]any {
+func (p *Plugin) SetListenParameters(params []string) {
+	p.m.Lock()
+	p.listenParameters = params
+	p.m.Unlock()
+}
+
+func (p *Plugin) GetListenParameters() (params []string) {
+	p.m.Lock()
+	params = append([]string{}, p.listenParameters...)
+	p.m.Unlock()
+	return
+}
+
+func (p *Plugin) Options() map[string]any {
 	m := k.Get("plugins." + p.name).(map[string]any)
 	r := make(map[string]any)
 	for k, v := range m {
@@ -82,17 +99,24 @@ func (p Plugin) Options() map[string]any {
 	return r
 }
 
-func (p Plugin) CheckAvatarBind(avatar string) bool {
+func (p *Plugin) CheckAvatarBind(avatar string) (_avatar string, ok bool) {
 	if p.AvatarBind == nil {
-		return false
+		return
+	}
+	if strings.Index(avatar, "local") == 0 {
+		_avatar = avatar
+	}
+	if _avatar != "" && contains(p.AvatarBind, "all:local") {
+		return _avatar, true
 	}
 	if contains(p.AvatarBind, "all") {
-		return true
+		return "all", true
 	}
-	if strings.Index(avatar, "local") == 0 && contains(p.AvatarBind, "all:local") {
-		return true
+	ok = contains(p.AvatarBind, avatar)
+	if ok {
+		_avatar = avatar
 	}
-	return contains(p.AvatarBind, avatar)
+	return _avatar, ok
 }
 
 func contains[T string](elems []T, v T) bool {

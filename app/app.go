@@ -24,7 +24,7 @@ func Start() {
 	osc := NewOSC(config.C.OSC.ClientPort, config.C.OSC.ServerAddr)
 	wsServer := NewWSServer(config.C.WebSocket.Hostname, config.C.WebSocket.Port, osc)
 
-	go func() { log.Fatal(osc.Listen(wsServer)) }()
+	go func() { log.Fatal(osc.Listen()) }()
 	go loadPlugins()
 	log.Fatal(wsServer.Listen())
 }

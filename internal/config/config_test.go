@@ -20,5 +20,6 @@ func TestConfig(t *testing.T) {
 	assert.NotNil(t, options)
 	assert.Equal(t, options["parameters"], []any{"VRCEmote"})
 
-	assert.Equal(t, plugin.CheckAvatarBind("all:local"), true)
+	_, ok = plugin.CheckAvatarBind("all:local")
+	assert.Equal(t, ok, true)
 }

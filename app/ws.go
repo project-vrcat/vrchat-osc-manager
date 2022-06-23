@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"sync"
-	"time"
 	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/logger"
 
@@ -22,11 +21,9 @@ import (
 
 type (
 	WSServer struct {
-		hostname         string
-		port             int
-		osc              *OSC
-		parameterChan    sync.Map
-		avatarChangeChan sync.Map
+		hostname string
+		port     int
+		osc      *OSC
 	}
 
 	wsMessage struct {
@@ -38,6 +35,7 @@ type (
 		Parameters     []string       `json:"parameters,omitempty"`
 		ParameterName  string         `json:"parameterName,omitempty"`
 		ParameterValue any            `json:"parameterValue,omitempty"`
+		Avatar         string         `json:"avatar,omitempty"`
 	}
 )
 
@@ -56,110 +54,79 @@ func (s *WSServer) handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pluginName := r.URL.Query().Get("plugin")
-	go func() {
-		closeCh := make(chan struct{})
-		defer func() {
-			close(closeCh)
-			conn.Close()
-		}()
 
-		go func() {
-			for {
-				time.Sleep(time.Millisecond * 100)
-				_ch, ok := s.parameterChan.Load(pluginName)
-				if !ok {
-					continue
-				}
-				ch := _ch.(chan parameterInfo)
-				select {
-				case <-closeCh:
-					log.Println("Close")
-					return
-				case p := <-ch:
-					if data, err := json.Marshal(wsMessage{
-						Method:         "parameters",
-						Plugin:         pluginName,
-						ParameterName:  p.Name,
-						ParameterValue: p.Value,
-					}); err == nil {
-						p, ok := config.C.Plugins[pluginName]
-						if !ok {
-							continue
-						}
-						if !p.CheckAvatarBind(nowAvatar) {
-							continue
-						}
-						_ = wsutil.WriteServerText(conn, data)
-					}
-				}
-			}
-		}()
+	plugin, ok := config.C.Plugins[pluginName]
+	if !ok {
+		return
+	}
 
-		go func() {
-			for {
-				time.Sleep(time.Millisecond * 100)
-				_ch, ok := s.avatarChangeChan.Load(pluginName)
-				if !ok {
-					continue
+	ctx := context.Background()
+	avatarChangeSub := hub.Sub(ctx, "avatar_change", func(msg *Message) {
+		if plugin.ListenAvatarChange {
+			avatar, ok := plugin.CheckAvatarBind(msg.avatar)
+			if ok {
+				if data, err := json.Marshal(wsMessage{
+					Method: "avatar_change",
+					Plugin: pluginName,
+					Avatar: avatar,
+				}); err == nil {
+					_ = wsutil.WriteServerText(conn, data)
 				}
-				ch := _ch.(chan bool)
-				select {
-				case <-closeCh:
-					log.Println("Close")
-					return
-				case change := <-ch:
-					if change {
-						if data, err := json.Marshal(wsMessage{
-							Method: "avatar_change",
-							Plugin: pluginName,
-						}); err == nil {
-							p, ok := config.C.Plugins[pluginName]
-							if !ok {
-								continue
-							}
-							if !p.CheckAvatarBind(nowAvatar) {
-								continue
-							}
-							_ = wsutil.WriteServerText(conn, data)
-						}
-					}
-				}
-			}
-		}()
-
-		for {
-			msg, _, err := wsutil.ReadClientData(conn)
-			if err != nil && !errors.Is(err, io.EOF) {
-				log.Println(err)
-				return
-			}
-			//log.Println("[WebSocket Message]", string(msg))
-			var value wsMessage
-			if json.Unmarshal(msg, &value) == nil {
-				s.messageHandler(value, conn)
 			}
 		}
+	})
+	defer hub.UnSub(avatarChangeSub)
+
+	parametersSub := hub.Sub(ctx, "parameters", func(msg *Message) {
+		if data, err := json.Marshal(wsMessage{
+			Method:         "parameters",
+			Plugin:         pluginName,
+			ParameterName:  msg.parameter.name,
+			ParameterValue: msg.parameter.value,
+		}); err == nil {
+			if _, ok = plugin.CheckAvatarBind(nowAvatar); ok {
+				_ = wsutil.WriteServerText(conn, data)
+			}
+		}
+	})
+	defer hub.UnSub(parametersSub)
+
+	closeCh := make(chan struct{})
+	defer func() {
+		close(closeCh)
+		conn.Close()
 	}()
+
+	for {
+		msg, _, err := wsutil.ReadClientData(conn)
+		if err != nil && !errors.Is(err, io.EOF) {
+			logger.App("WebSocket").Error(err)
+			return
+		}
+		//log.Println("[WebSocket Message]", string(msg))
+		var value wsMessage
+		if json.Unmarshal(msg, &value) == nil {
+			s.messageHandler(value, conn)
+		}
+	}
 }
 
 func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
+	plugin, ok := config.C.Plugins[msg.Plugin]
+	if !ok {
+		return
+	}
 	switch msg.Method {
 	case "send":
-		// 禁止未注册的插件发送消息
-		_, ok := plugins[msg.Plugin]
-		if !ok {
-			return
-		}
-
 		valueStr, ok := msg.Value.(string)
 		if ok && strings.Index(valueStr, "/avatar") == 0 {
 			// 禁止向非绑定Avatar发送消息
 			p, ok := config.C.Plugins[msg.Plugin]
 			if !ok {
-				return
+				break
 			}
-			if !p.CheckAvatarBind(nowAvatar) {
-				return
+			if _, ok = p.CheckAvatarBind(nowAvatar); !ok {
+				break
 			}
 		}
 
@@ -180,27 +147,19 @@ func (s *WSServer) messageHandler(msg wsMessage, conn net.Conn) {
 		_ = s.osc.Send(m)
 
 	case "get_options":
-		if p, ok := config.C.Plugins[msg.Plugin]; ok {
-			if data, err := json.Marshal(wsMessage{
-				Method:  "get_options",
-				Plugin:  msg.Plugin,
-				Options: p.Options(),
-			}); err == nil {
-				_ = wsutil.WriteServerText(conn, data)
-			}
+		if data, err := json.Marshal(wsMessage{
+			Method:  "get_options",
+			Plugin:  msg.Plugin,
+			Options: plugin.Options(),
+		}); err == nil {
+			_ = wsutil.WriteServerText(conn, data)
 		}
 
 	case "listen_parameters":
-		if p, ok := plugins[msg.Plugin]; ok {
-			pluginsParameters.Store(p.Name, msg.Parameters)
-			s.parameterChan.Store(p.Name, make(chan parameterInfo, 10))
-		}
+		plugin.SetListenParameters(msg.Parameters)
 
 	case "listen_avatar_change":
-		if p, ok := plugins[msg.Plugin]; ok {
-			pluginsAvatarChange.Store(p.Name, false)
-			s.avatarChangeChan.Store(p.Name, make(chan bool))
-		}
+		plugin.ListenAvatarChange = true
 
 	default:
 		log.Println("[WebSocket Message]", "Unknown method", msg.Method)

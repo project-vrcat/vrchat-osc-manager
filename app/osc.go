@@ -1,7 +1,9 @@
 package app
 
 import (
+	"context"
 	"strings"
+	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/logger"
 
 	"github.com/hypebeast/go-osc/osc"
@@ -13,10 +15,6 @@ type (
 		ServerAddr string
 		client     *osc.Client
 		server     *osc.Server
-	}
-	parameterInfo struct {
-		Name  string
-		Value []any
 	}
 )
 
@@ -35,38 +33,35 @@ func (receiver *OSC) Send(packet osc.Packet) error {
 	return receiver.client.Send(packet)
 }
 
-func (receiver *OSC) Listen(ws *WSServer) error {
+func (receiver *OSC) Listen() error {
 	d := osc.NewStandardDispatcher()
+	ctx := context.Background()
 	_ = d.AddMsgHandler("*", func(msg *osc.Message) {
 		if strings.Index(msg.Address, "/avatar/parameters/") == 0 {
 			parameterName := msg.Address[19:]
-			pluginsParameters.Range(func(k, v any) bool {
-				pluginName := k.(string)
-				parameters := v.([]string)
-				for _, parameter := range parameters {
-					if parameter == parameterName {
-						if ch, ok := ws.parameterChan.Load(pluginName); ok {
-							ch.(chan parameterInfo) <- parameterInfo{
-								Name:  parameterName,
-								Value: msg.Arguments,
-							}
-						}
+			for _, p := range config.C.Plugins {
+				for _, param := range p.GetListenParameters() {
+					if param == parameterName {
+						hub.Publish(ctx, "parameters", &Message{
+							method: "parameters",
+							parameter: parameter{
+								name:  parameterName,
+								value: msg.Arguments,
+							},
+						})
 					}
 				}
-				return true
-			})
+			}
 		}
 	})
 	_ = d.AddMsgHandler("/avatar/change", func(msg *osc.Message) {
 		if len(msg.Arguments) > 0 {
 			if avatar, ok := msg.Arguments[0].(string); ok {
 				nowAvatar = avatar
-				pluginsAvatarChange.Range(func(k, v any) bool {
-					pluginName := k.(string)
-					if ch, ok := ws.avatarChangeChan.Load(pluginName); ok {
-						ch.(chan bool) <- true
-					}
-					return true
+
+				hub.Publish(ctx, "avatar_change", &Message{
+					method: "avatar_change",
+					avatar: nowAvatar,
 				})
 			}
 		}

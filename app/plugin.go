@@ -5,14 +5,11 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"sync"
 	"vrchat-osc-manager/internal/config"
 	"vrchat-osc-manager/internal/plugin"
 )
 
 var plugins = make(map[string]*plugin.Plugin)
-var pluginsParameters = sync.Map{}
-var pluginsAvatarChange = sync.Map{}
 
 func loadPlugins() {
 	dir, err := ioutil.ReadDir(config.C.PluginsDir)
@@ -40,7 +37,6 @@ func loadPlugins() {
 			continue
 		}
 		plugins[p.Name] = p
-		pluginsParameters.Store(p.Name, []string{})
 		if c.Enabled {
 			if err = p.Init(); err != nil {
 				log.Println(err)
