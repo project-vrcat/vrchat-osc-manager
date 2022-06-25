@@ -30,7 +30,7 @@ func TestPlugin_Start(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 3)
 	if err = p.Stop(); err != nil {
 		t.Fatal(err)
 		return
