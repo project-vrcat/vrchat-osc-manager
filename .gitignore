@@ -6,7 +6,7 @@
 /plugins/*
 !/plugins/.gitkeep
 !/plugins/example-plugin
-/plugins/example-plugin/.installed
+!/plugins/example-plugin-node
 
 /config.development.toml
 

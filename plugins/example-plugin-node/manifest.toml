@@ -1,0 +1,7 @@
+name = "example-plugin-node"
+version = "0.0.1"
+author = "Gizmo"
+
+[entrypoint]
+args = ["dist/plugin.js"]
+executable = "node.exe"
