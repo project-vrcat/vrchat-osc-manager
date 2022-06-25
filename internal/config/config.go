@@ -1,7 +1,6 @@
 package config
 
 import (
-	"golang.org/x/exp/slices"
 	"reflect"
 	"strings"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
+	"golang.org/x/exp/slices"
 )
 
 type (
@@ -93,7 +93,7 @@ func (p *Plugin) Options() map[string]any {
 	m := k.Get("plugins." + p.name).(map[string]any)
 	r := make(map[string]any)
 	for k, v := range m {
-		if !slices.Contains[string](pluginTags, k) {
+		if !slices.Contains(pluginTags, k) {
 			r[k] = v
 		}
 	}
@@ -107,13 +107,13 @@ func (p *Plugin) CheckAvatarBind(avatar string) (_avatar string, ok bool) {
 	if strings.Index(avatar, "local") == 0 {
 		_avatar = avatar
 	}
-	if _avatar != "" && slices.Contains[string](p.AvatarBind, "all:local") {
+	if _avatar != "" && slices.Contains(p.AvatarBind, "all:local") {
 		return _avatar, true
 	}
-	if slices.Contains[string](p.AvatarBind, "all") {
+	if slices.Contains(p.AvatarBind, "all") {
 		return "all", true
 	}
-	ok = slices.Contains[string](p.AvatarBind, avatar)
+	ok = slices.Contains(p.AvatarBind, avatar)
 	if ok {
 		_avatar = avatar
 	}
